@@ -29,6 +29,7 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
   String num2 = "";
   String operand = "";
   String history = "";
+  String userInput = "";
 
 
   Widget calculatorButtons()
@@ -45,13 +46,12 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
   }
 
   void Function()? buttonOnClick(String value) {
-    print(value);
     if (value=="B")
       {
         delete();
         return null;
       }
-    if (value=="AC")
+    if (value=="C")
       {
         allClear();
         return null;
@@ -81,16 +81,24 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
       {
         return null;
       }
+    if (operand =="+/-")
+      {
+        if(num1[0]!='-')
+          num1 = '-'+num1;
+        else
+          num1 = num1.substring(1);
+      }
+
     final parseNum1 = double.parse(num1);
     final parseNum2 = double.parse(num2);
-    var result = 0.0;
+    double result = 0.0;
     var historyString='';
 
     switch (operand)
         {
-      case 'X':
+      case 'x':
+        print(parseNum1.toString() + parseNum2.toString());
         result = parseNum1*parseNum2;
-
         break;
 
       case '+':
@@ -101,19 +109,25 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
         result = parseNum1-parseNum2;
         break;
 
-      case '/':
+      case '÷':
         result = parseNum1/parseNum2;
         break;
+
       default:
         break;
 
     }
     historyString = '$num1$operand$num2';
-    print(historyString);
 
 
     setState(() {
-  num1=result.toString();
+  num1=result.toStringAsFixed(2).toString();
+  print(num1);
+  if(num1.endsWith(".00"))
+  {num1 = num1.substring(0, num1.length - 3);}
+  if(num1.endsWith("0"))
+  {num1 = num1.substring(0, num1.length - 1);}
+
   operand='';
   num2='';
   history=historyString;
@@ -213,78 +227,113 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
 
   Widget button(String text, Color bgColor, Color txtColor, void Function()? onPressed)
   {
-    return Container(
-      padding:const EdgeInsets.all(8),
-      margin: const EdgeInsets.all(8),
-      decoration:BoxDecoration(
-          color:bgColor,
-          borderRadius:BorderRadius.circular(100)
-      ),
-      child: TextButton(onPressed: onPressed,
-          child: Text(text.toString(),
-            style: TextStyle(color: txtColor, fontSize: 35),
-          )
+    return SizedBox(
+      height:80,
+      width: 80,
+      child: Container(
+        padding:const EdgeInsets.all(8),
+        decoration:BoxDecoration(
+            color:bgColor,
+            borderRadius:BorderRadius.circular(100)
+        ),
+        child: TextButton(onPressed: onPressed,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(text.toString(),
+                style: TextStyle(color: txtColor, fontSize: 35),
+              ),
+            )
+        ),
       ),
     );
 
   }
 
-  Widget backspaceIconButton(Color bgColor, Color txtColor, void Function()? onPressed)
+  Widget iconButton(IconData icon, Color bgColor, Color txtColor, void Function()? onPressed)
   {
-    return Container(
-        height:80,
+    return SizedBox(
+      height:80,
       width: 80,
-      padding:const EdgeInsets.all(8),
-      margin: const EdgeInsets.all(8),
-      decoration:BoxDecoration(
-          color:bgColor,
-          borderRadius:BorderRadius.circular(100)
-      ),
-      child: IconButton(onPressed: onPressed,
-          color:Colors.white,
-        icon: const Icon(Icons.backspace),
-          iconSize:32,
-          )
+      child: Container(
 
+        padding:const EdgeInsets.all(8),
+        decoration:BoxDecoration(
+            color:bgColor,
+            borderRadius:BorderRadius.circular(100)
+        ),
+        child: IconButton(onPressed: onPressed,
+            color:txtColor,
+          icon: Icon(icon),
+            iconSize:30,
+            )
+
+      ),
     );
 
   }
 
   List<Widget> allButtons()
   {
-    const nums = ["AC","()", "%",'/',7,8,9,'+',4,5,6,'-',1,2,3 ,'X',0,'.','B','=' ];
+    const nums = ["C","( )", "%","÷",7,8,9,"x",4,5,6,"-",1,2,3,'+',"+/-",0,".","="];
     List<Widget> buttons = [];
     List<Widget> numpad = [];
-
     for(int i=0;i<nums.length;i++) {
       {
         Color txtColor = Colors.white;
-        Color bgColor = Colors.black26;
+        Color bgColor = Color(0xff171719);
+        // #DE6461
+        if(nums[i]=="C")
+          {
+            Color bgColor = Color(0xff2D2D2F);
+            Color txtColor = Color(0xffDE6461);
+            Widget newButton = button(nums[i].toString(),bgColor,txtColor,()=>buttonOnClick(nums[i].toString()));
+            buttons.add(newButton);
+          }
 
         if(nums[i]=='B')
         {
           Color bgColor = Colors.blueAccent;
-          Widget newButton = backspaceIconButton(bgColor,txtColor,()=>buttonOnClick(nums[i].toString()));
+          Widget newButton = iconButton(Icons.backspace,bgColor,txtColor,()=>buttonOnClick(nums[i].toString()));
           buttons.add(newButton);
         }
-
-        else if(nums[i] is String)
+        if(nums[i]=='x')
         {
-          Color bgColor = Colors.blueAccent;
+          Color bgColor = Color(0xff2D2D2F);
+          Color txtColor = Color(0xff77f383);
+          Widget newButton = iconButton(Icons.close ,bgColor,txtColor,()=>buttonOnClick(nums[i].toString()));
+          buttons.add(newButton);
+        }
+        if(nums[i]=="+/-"|| nums[i]==".")
+          {
+            Widget newButton =  button(nums[i].toString(),bgColor,txtColor,()=>buttonOnClick(nums[i].toString()));
+            buttons.add(newButton);
+          }
+
+
+        else if(nums[i] is String &&(nums[i]!="+/-"&& nums[i]!="."&& nums[i]!="x" &&nums[i]!="C"))
+        {
+          Color bgColor = Color(0xff2D2D2F);
+          Color txtColor = Color(0xff77f383);
           Widget newButton = button(nums[i].toString(),bgColor,txtColor,()=>buttonOnClick(nums[i].toString()));
           buttons.add(newButton);
         }
 
-        else{
+        else if(nums[i] is int){
           Widget newButton =  button(nums[i].toString(),bgColor,txtColor,()=>buttonOnClick(nums[i].toString()));
           buttons.add(newButton);
         }
 
         if ((i+1)%4==0)
         {
-          numpad.add(Row(
+          numpad.add(
+              Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: buttons));
+              children: buttons.map((button) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: button)).toList()
+
+            )
+          );
           buttons=[];
         }
       }
@@ -302,7 +351,7 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
         child: Container(
 
           decoration: const BoxDecoration(
-            color: Colors.black54,
+            color: Color(0xff010101),
 
           ),
           child: Column(
@@ -310,42 +359,60 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
             children: [
 
               Expanded(
+                flex: 1,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    mainAxisAlignment:MainAxisAlignment.start,
+                    children: [
+                      Container(
+                          alignment: Alignment.topRight,
+                          child: Text(history.isEmpty?"":history,
+                            textAlign: TextAlign.start,
+                            style: TextStyle(
+                                color: Colors.white.withOpacity(0.6),
+                                fontSize: screenSize.width * 0.08,
+                            ),
+                          )
+                      ),
+                      Container(
+                          alignment: Alignment.topRight,
+                          padding: const EdgeInsets.all(16),
+                          child: Text("$num1$operand$num2".isEmpty?"0":"$num1$operand$num2",
+                            textAlign: TextAlign.start,
+                            style: TextStyle(
+                                fontWeight:FontWeight.bold,
+                                color: Colors.white,
+                              fontSize: screenSize.width * 0.12,
+                            ),
+                          )
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+
+              Expanded(
+                flex: 2,
                 child: Column(
-                  mainAxisAlignment:MainAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Container(
-                        alignment: Alignment.bottomRight,
-                        padding: const EdgeInsets.all(16),
-                        child: Text(history.isEmpty?"":history,
-                          textAlign: TextAlign.start,
-                          style: const TextStyle(
-                              fontWeight:FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 32
-                          ),
-                        )
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Divider(thickness:2,
+                          color: Color(0xff191919)),
                     ),
                     Container(
-                        alignment: Alignment.bottomRight,
-                        padding: const EdgeInsets.all(16),
-                        child: Text("$num1$operand$num2".isEmpty?"0":"$num1$operand$num2",
-                          textAlign: TextAlign.start,
-                          style: const TextStyle(
-                              fontWeight:FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 48
-                          ),
-                        )
-                    ),
+                      decoration: const BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                      child: calculatorButtons(),
+                    )
                   ],
                 ),
               ),
-              Container(
-              decoration: const BoxDecoration(
-                color: Colors.black54,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-                  child: calculatorButtons(),
-          )
+
               ]
               ),
         )
