@@ -10,6 +10,7 @@ class CalcTextField extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.ltr,
       child: TextField(
+        maxLines: 2,
         controller: controller,
         cursorColor: const Color(0xff77f383),
         textAlign: TextAlign.right,

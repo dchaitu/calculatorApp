@@ -5,24 +5,40 @@ class CalculatorProvider extends ChangeNotifier {
   final calcController = TextEditingController();
   String resultText = '';
   int openParenthesesCount = 0;
+  bool showResult = false;
 
 
   setValue(String value) {
+    String controllerText = calcController.text;
+    int textLength = controllerText.length;
     switch (value) {
       case "C":
         calcController.clear();
-        resultText = '';
+        resultText = "";
+        notifyListeners();
         break;
 
       case "x":
-        calcController.text += "x";
+
+        if (RegExp(r'[+\-*/x÷]').hasMatch(controllerText[textLength - 1]) &&
+            RegExp(r'[+\-*/x÷]').hasMatch(value)) {
+          controllerText = controllerText.substring(0, textLength - 1) + value;
+          calcController.text = controllerText;
+        }
+        else {
+          calcController.text += "x";
+        }
         break;
       case "=":
         calculate();
+        calcController.text = resultText;
+        resultText="";
+        notifyListeners();
         break;
 
       case "+/-":
           positiveToNegative();
+          calculate();
         break;
       case ".":
         dot();
@@ -35,20 +51,40 @@ class CalculatorProvider extends ChangeNotifier {
 
 
       default:
-        calcController.text += value;
+        if(textLength>0) {
+
+          if (controllerText[textLength-1] == ")" && double.tryParse(value) != null) {
+            calcController.text += 'x$value';
+          }
+          else if (RegExp(r'[+\-*/x÷]').hasMatch(controllerText[textLength - 1]) &&
+              RegExp(r'[+\-*/x÷]').hasMatch(value)) {
+            controllerText = controllerText.substring(0, textLength - 1) + value;
+            calcController.text = controllerText;
+          }
+          else{
+            calcController.text += value;
+          }
+        }
+        else {
+          calcController.text += value;
+        }
+
         resultText+=value;
-        calculate();
 
+        if(double.tryParse(value) != null || value ==")") {
+          calculate();
+        }
 
+        calcController.selection = TextSelection.fromPosition(
+            TextPosition(offset: calcController.text.length));
+        notifyListeners();
     }
 
-    calcController.selection = TextSelection.fromPosition(
-        TextPosition(offset: calcController.text.length));
-    notifyListeners();
+
   }
 
   calculate() {
-    String text = calcController.text.replaceAll("x", "*").replaceAll("%", "/100");
+    String text = calcController.text.replaceAll("x", "*").replaceAll("%", "/100").replaceAll('÷', "/");
     num result = text.interpret();
     String resultString = result.toStringAsFixed(2).toString();
     String resultStr = resultString;
@@ -98,16 +134,15 @@ class CalculatorProvider extends ChangeNotifier {
   positiveToNegative()
   {
     String text = calcController.text;
-    int lastOperatorIndex = text.lastIndexOf(RegExp(r'[+\-*/x÷(]'));
+    int lastOperatorIndex = text.lastIndexOf(RegExp(r'[+\*/x÷(]'));
     String lastNumber = text.substring(lastOperatorIndex + 1);
     if (text.isEmpty) return;
-    if (lastNumber.isEmpty || lastNumber == '-') return;
+    if (lastNumber.isEmpty || lastNumber.isEmpty || lastNumber == '-') return;
 
     if(lastNumber.startsWith('-')) {
       lastNumber = lastNumber.substring(1);
     } else {
       lastNumber = '-$lastNumber';
-
     }
     text = text.substring(0, lastOperatorIndex + 1) + lastNumber;
     calcController.text = text;
@@ -120,8 +155,6 @@ class CalculatorProvider extends ChangeNotifier {
   parenthesisOperation()
   {
     String text = calcController.text;
-
-    // Count the number of opening and closing parentheses
     int openCount = '('.allMatches(text).length;
     int closeCount = ')'.allMatches(text).length;
 
@@ -133,7 +166,6 @@ class CalculatorProvider extends ChangeNotifier {
     else if (text.isEmpty || RegExp(r'[+\-*/x÷(]$').hasMatch(text)) {
       calcController.text += '(';
     }
-    // For any other case, open a new parenthesis
     else {
       calcController.text += 'x(';
     }
