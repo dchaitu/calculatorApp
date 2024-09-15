@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:function_tree/function_tree.dart';
+import 'package:intl/intl.dart';
 
 class CalculatorProvider extends ChangeNotifier {
   final calcController = TextEditingController();
   String resultText = '';
+  String roundingValue = '';
   int openParenthesesCount = 0;
   bool showResult = false;
+  List<Map<String, String>> history = [];
 
 
   setValue(String value) {
@@ -15,6 +18,7 @@ class CalculatorProvider extends ChangeNotifier {
       case "C":
         calcController.clear();
         resultText = "";
+        roundingValue = '';
         notifyListeners();
         break;
 
@@ -30,8 +34,19 @@ class CalculatorProvider extends ChangeNotifier {
         }
         break;
       case "=":
+        print("**************************Pressed =**********************");
         calculate();
-        calcController.text = resultText;
+        print("**************************Calculated**********************");
+        if(resultText.isNotEmpty) {
+          history
+              .add({'expression': calcController.text, 'result': resultText});
+          print("'expression': ${calcController.text}, 'result': $resultText");
+          calcController.text = resultText.replaceAll(',', '');
+        }
+        else{
+          print("Error: resultText is null or empty");
+          calcController.text = '';
+        }
         resultText="";
         notifyListeners();
         break;
@@ -71,9 +86,9 @@ class CalculatorProvider extends ChangeNotifier {
 
         resultText+=value;
 
-        if(double.tryParse(value) != null || value ==")") {
+        // if(double.tryParse(value) != null || value ==")") {
           calculate();
-        }
+        // }
 
         calcController.selection = TextSelection.fromPosition(
             TextPosition(offset: calcController.text.length));
@@ -83,28 +98,166 @@ class CalculatorProvider extends ChangeNotifier {
 
   }
 
-  calculate() {
-    String text = calcController.text.replaceAll("x", "*").replaceAll("%", "/100").replaceAll('÷', "/");
-    num result = text.interpret();
-    String resultString = result.toStringAsFixed(2).toString();
-    String resultStr = resultString;
-    if(resultString.endsWith('.0'))
+
+  roundedValue(String value)
+  {
+    String stringValue = '';
+    if (value.isEmpty) {
+      return;
+    }
+    String cleanedValue = value.replaceAll(',', '');
+    double roundValue = double.parse(cleanedValue);
+    print("roundValue:- $roundValue");
+
+    double thousands = 1000;
+    double millions = 1000000;
+    double billions = 1000000000;
+
+    if(roundValue>=billions)
     {
-      resultStr = resultString.substring(0,resultString.length-2);
+      roundValue = roundValue/billions;
+      stringValue = "${roundValue.toStringAsFixed(2)}B+";
+      print(stringValue);
+
+    }
+    else if(roundValue>=millions)
+    {
+      roundValue = roundValue/millions;
+      stringValue = "${roundValue.toStringAsFixed(2)}M+";
+      print(stringValue);
+
+    }
+    else if (roundValue>=thousands)
+    {
+      roundValue = roundValue/thousands;
+      stringValue = "${roundValue.toStringAsFixed(2)}K+";
+      print(stringValue);
+
+    }
+    else{
+      stringValue = roundValue.toString();
+    }
+    roundingValue = stringValue;
+    print("roundingValue: $roundingValue");
+    notifyListeners();
+
+    return roundingValue;
+  }
+
+  addButtonValue(double addValue) {
+    String controllerText = calcController.text;
+    int textLength = controllerText.length;
+    double oneLakh = addValue;
+    if(controllerText.isEmpty)
+      {
+        controllerText+= oneLakh.toString();
+        calcController.text = controllerText;
+
+      }
+    else {
+      // last is operator
+      if (RegExp(r'[+\-*/x÷]').hasMatch(controllerText[textLength - 1])) {
+        controllerText += oneLakh.toString();
+      }// last is digit
+      else if(RegExp(r'[0-9]').hasMatch(controllerText[textLength - 1]))
+      {
+        print("Last Digit");
+        print((controllerText.substring(textLength - 1)));
+        controllerText = '${controllerText.substring(0, textLength)}x$oneLakh';
+
+      }
+      calcController.text = controllerText;
+
+    }
+    calculate();
+    notifyListeners();
+
+  }
+
+  String convertPowerOfTen(double number) {
+    int exponent = 0;
+    if (number==0)
+      return '';
+    while (number < 1) {
+      number *= 10;
+      exponent--;
+    }
+
+    while (number >= 10) {
+      number /= 10;
+      exponent++;
+    }
+
+    String coefficient = (number * 10).toStringAsFixed(0);
+    return "(${coefficient}*10^(${exponent - 1}))";
+  }
+
+
+  convertDecimalToPower(String text)
+  {
+    List<String> numbers = text.split(RegExp(r'(?<=[+\-*/x÷()])|(?=[+\-*/x÷()])'));
+    print(numbers);
+    for(int i=0; i< numbers.length;i++)
+      {
+        if(numbers[i].contains('.'))
+          {
+            numbers[i] = convertPowerOfTen(double.tryParse(numbers[i])!);
+          }
+      }
+    print("After changing $numbers");
+    String updatedText = numbers.join('');
+    print("After changing: $updatedText");
+    return updatedText;
+  }
+
+
+  calculate() {
+    // try {
+    String text = calcController.text.replaceAll("x", "*").replaceAll("%", "/100").replaceAll('÷', "/");
+    String updatedText =  text.contains('.')? convertDecimalToPower(text): text;
+    if (updatedText == null) {
+      throw Exception("Error: convertDecimalToPower returned null");
+    }
+
+    print("text: $text");
+    num result = updatedText.interpret();
+    print("result interpreted: $result");
+    String resultString = result.toString();
+    String resultStr = resultString;
+
+    if(resultStr.endsWith('.0'))
+    {
+      resultStr = resultStr.substring(0,resultStr.length-2);
 
     }
     else if (resultString.endsWith('.00'))
     {
-      resultStr = resultString.substring(0,resultString.length-3);
+      resultStr = resultStr.substring(0,resultStr.length-3);
     }
+    NumberFormat formatter = NumberFormat("#,##,##0.0###", "en_US");
+    if (resultStr.isEmpty || resultStr == null) {
+      throw Exception("resultStr is null or empty");
+    }
+    double number = double.parse(resultStr);
+    resultStr = formatter.format(number).toString();
+    print("result after format $resultStr");
 
     resultText =resultStr;
+    print("resultText: $resultText");
+    roundingValue = roundedValue(resultText);
+    // }
+    // catch (e) {
+    //   print("Error in calculate: $e");
+    //   resultText = ""; // Set a fallback value
+    // }
+    print("Calculation done");
     notifyListeners();
   }
 
   dot()
   {
     String text = calcController.text;
+    int textLength = text.length;
     int lastOperatorIndex = text.lastIndexOf(RegExp(r'[+\-*/x÷]'));
     String lastNumber = text.substring(lastOperatorIndex + 1);
 
@@ -114,9 +267,15 @@ class CalculatorProvider extends ChangeNotifier {
     }
     else if (calcController.text.isEmpty) {
       calcController.text += "0.";
-    } else {
+    }else if(text[textLength-1].contains(RegExp(r'[+\-*/x÷]')))
+    {
+      calcController.text += "0.";
+    }
+
+    else {
       calcController.text += ".";
     }
+
   }
 
   void delete() {
