@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../provider/calculator_provider.dart';
 import 'button2.dart';
 import 'buttons.dart';
+import 'colors.dart';
 
 class Numpad extends StatelessWidget {
   const Numpad({super.key});
@@ -46,7 +47,7 @@ List<Widget> allButtons(BuildContext context)
       else if(nums[i]=='x')
       {
         Color bgColor = const Color(0xff2D2D2F);
-        Color txtColor = const Color(0xff77f383);
+        Color txtColor = greenOperatorColor;
         Widget newButton = IconButton1(icon:Icons.close ,bgColor:bgColor,
             txtColor:txtColor,
             onPressed: ()=>Provider.of<CalculatorProvider>(context, listen: false).setValue(nums[i].toString()));
@@ -62,7 +63,7 @@ List<Widget> allButtons(BuildContext context)
       }
       else if(nums[i]=="=")
       {
-        Color bgColor = const Color(0xff318608);
+        Color bgColor = equalsBgColor;
         Color txtColor = Colors.white;
         Widget newButton =  Button2(text:nums[i].toString(), bgColor:bgColor,
           txtColor:txtColor,
@@ -72,8 +73,8 @@ List<Widget> allButtons(BuildContext context)
       }
       else if(nums[i] is String)
       {
-        Color bgColor = const Color(0xff2D2D2F);
-        Color txtColor = const Color(0xff77f383);
+        Color bgColor = operatorButtonBgColor;
+        Color txtColor = greenOperatorColor;
         Widget newButton = Button2(text:nums[i].toString(), bgColor:bgColor,
           txtColor:txtColor,
           onPressed: ()=>Provider.of<CalculatorProvider>(context, listen: false).setValue(nums[i].toString()),

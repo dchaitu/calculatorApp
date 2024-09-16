@@ -7,9 +7,17 @@ class CalculatorProvider extends ChangeNotifier {
   String resultText = '';
   String roundingValue = '';
   int openParenthesesCount = 0;
-  bool showResult = false;
+  bool showHistory = false;
   List<Map<String, String>> history = [];
 
+
+  setShowHistory()
+  {
+    showHistory = !showHistory;
+    print("showHistory:- $showHistory");
+    notifyListeners();
+
+  }
 
   setValue(String value) {
     String controllerText = calcController.text;
@@ -34,7 +42,6 @@ class CalculatorProvider extends ChangeNotifier {
         }
         break;
       case "=":
-        print("**************************Pressed =**********************");
         calculate();
         print("**************************Calculated**********************");
         if(resultText.isNotEmpty) {
@@ -44,7 +51,6 @@ class CalculatorProvider extends ChangeNotifier {
           calcController.text = resultText.replaceAll(',', '');
         }
         else{
-          print("Error: resultText is null or empty");
           calcController.text = '';
         }
         resultText="";
@@ -85,10 +91,7 @@ class CalculatorProvider extends ChangeNotifier {
         }
 
         resultText+=value;
-
-        // if(double.tryParse(value) != null || value ==")") {
-          calculate();
-        // }
+        calculate();
 
         calcController.selection = TextSelection.fromPosition(
             TextPosition(offset: calcController.text.length));
@@ -99,13 +102,14 @@ class CalculatorProvider extends ChangeNotifier {
   }
 
 
-  roundedValue(String value)
+  roundedResultToKMB(String value)
   {
     String stringValue = '';
     if (value.isEmpty) {
       return;
     }
     String cleanedValue = value.replaceAll(',', '');
+    print("cleanedValue $cleanedValue");
     double roundValue = double.parse(cleanedValue);
     print("roundValue:- $roundValue");
 
@@ -115,22 +119,27 @@ class CalculatorProvider extends ChangeNotifier {
 
     if(roundValue>=billions)
     {
+      double actualRoundedValue = roundValue;
       roundValue = roundValue/billions;
-      stringValue = "${roundValue.toStringAsFixed(2)}B+";
+      stringValue = actualRoundedValue==billions?"${roundValue.toStringAsFixed(2)}B":"${roundValue.toStringAsFixed(2)}B+";
       print(stringValue);
 
     }
     else if(roundValue>=millions)
     {
+      double actualRoundedValue = roundValue;
       roundValue = roundValue/millions;
-      stringValue = "${roundValue.toStringAsFixed(2)}M+";
+
+      stringValue = actualRoundedValue==millions?"${roundValue.toStringAsFixed(2)}M":"${roundValue.toStringAsFixed(2)}M+";
       print(stringValue);
 
     }
     else if (roundValue>=thousands)
     {
+      double actualRoundedValue = roundValue;
       roundValue = roundValue/thousands;
-      stringValue = "${roundValue.toStringAsFixed(2)}K+";
+      stringValue = actualRoundedValue==millions?"${roundValue.toStringAsFixed(2)}K":"${roundValue.toStringAsFixed(2)}K+";
+
       print(stringValue);
 
     }
@@ -176,8 +185,9 @@ class CalculatorProvider extends ChangeNotifier {
 
   String convertPowerOfTen(double number) {
     int exponent = 0;
-    if (number==0)
+    if (number==0) {
       return '';
+    }
     while (number < 1) {
       number *= 10;
       exponent--;
@@ -188,8 +198,8 @@ class CalculatorProvider extends ChangeNotifier {
       exponent++;
     }
 
-    String coefficient = (number * 10).toStringAsFixed(0);
-    return "(${coefficient}*10^(${exponent - 1}))";
+    String coefficient = (number * 10).toString();
+    return "($coefficient*10^(${exponent - 1}))";
   }
 
 
@@ -212,18 +222,17 @@ class CalculatorProvider extends ChangeNotifier {
 
 
   calculate() {
-    // try {
     String text = calcController.text.replaceAll("x", "*").replaceAll("%", "/100").replaceAll('÷', "/");
     String updatedText =  text.contains('.')? convertDecimalToPower(text): text;
-    if (updatedText == null) {
-      throw Exception("Error: convertDecimalToPower returned null");
-    }
 
     print("text: $text");
     num result = updatedText.interpret();
     print("result interpreted: $result");
     String resultString = result.toString();
     String resultStr = resultString;
+    NumberFormat formatter = NumberFormat("#,##,##0.#########", "en_US");
+    double number = double.parse(resultStr);
+    resultStr = formatter.format(number).toString();
 
     if(resultStr.endsWith('.0'))
     {
@@ -234,22 +243,9 @@ class CalculatorProvider extends ChangeNotifier {
     {
       resultStr = resultStr.substring(0,resultStr.length-3);
     }
-    NumberFormat formatter = NumberFormat("#,##,##0.0###", "en_US");
-    if (resultStr.isEmpty || resultStr == null) {
-      throw Exception("resultStr is null or empty");
-    }
-    double number = double.parse(resultStr);
-    resultStr = formatter.format(number).toString();
-    print("result after format $resultStr");
-
     resultText =resultStr;
     print("resultText: $resultText");
-    roundingValue = roundedValue(resultText);
-    // }
-    // catch (e) {
-    //   print("Error in calculate: $e");
-    //   resultText = ""; // Set a fallback value
-    // }
+    roundingValue = roundedResultToKMB(resultText);
     print("Calculation done");
     notifyListeners();
   }
@@ -334,6 +330,11 @@ class CalculatorProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  clearHistory()
+  {
+    history.clear();
+    notifyListeners();
+  }
 
 
   @override
